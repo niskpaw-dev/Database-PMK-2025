@@ -117,50 +117,85 @@ setInterval(fetchLatestData, 300000);
 function processData(data) {
     const getCol = (searchTerms) => {
         const keys = Object.keys(data[0]);
-        return keys.find(k => searchTerms.some(term => k.includes(term.toUpperCase())));
+        // Cari kolum yang mengandungi kata kunci secara tepat
+        return keys.find(k => searchTerms.some(term => k.toUpperCase().includes(term.toUpperCase())));
     };
 
+    // Mapping yang lebih tepat mengikut struktur fail anda
     const colNama = getCol(["NAMA MURID"]);
-    const colSekolah = getCol(["NAMA SEKOLAH", "KOD SEKOLAH"]);
+    const colSekolah = getCol(["NAMA SEKOLAH"]);
     const colDarjah = getCol(["DARJAH"]);
     const colStatusF1 = getCol(["FASA PELEPASAN 1"]);
-    const colStatusF2 = getCol(["FASA PELEPASAN 2", "TERKINI"]);
-    const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "OKU"]);
-    const colPakk = getCol(["PAKK"]);
+    const colStatusF2 = getCol(["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)", "FASA PELEPASAN 2"]);
+    
+    // Kita cuba cari kolum OKU dalam fasa pelepasan 2 atau data awal
+    const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "STATUS OKU DATA AWAL", "OKU"]);
+    const colPakk = getCol(["KATEGORI PAKK", "PAKK"]);
 
     // 1. UPDATE STATISTIK
     document.getElementById('statTotal').innerText = data.length;
-    document.getElementById('statLulus').innerText = data.filter(d => String(d[colStatusF2]).toUpperCase().includes("ARUS PERDANA")).length;
+    
+    const lulusCount = data.filter(d => {
+        let val = String(d[colStatusF2] || "").toUpperCase();
+        return val.includes("ARUS PERDANA");
+    }).length;
+    document.getElementById('statLulus').innerText = lulusCount;
+    
     document.getElementById('statSekolah').innerText = new Set(data.map(d => d[colSekolah])).size;
-    document.getElementById('statOKU').innerText = data.filter(d => String(d[colOKU]).toUpperCase() === "YA").length;
+    
+    const okuCount = data.filter(d => {
+        let val = String(d[colOKU] || "").toUpperCase();
+        return val === "YA" || val.includes("YA");
+    }).length;
+    document.getElementById('statOKU').innerText = okuCount;
 
-    // 2. UPDATE CARTA DARJAH
+    // 2. CARTA DARJAH
     const gradeData = {};
-    data.forEach(d => { let val = d[colDarjah] || "N/A"; gradeData[val] = (gradeData[val] || 0) + 1; });
+    data.forEach(d => { 
+        let val = d[colDarjah] || "N/A"; 
+        gradeData[val] = (gradeData[val] || 0) + 1; 
+    });
 
-    if (gradeChart) gradeChart.destroy(); // Padam carta lama sebelum bina baru
+    if (gradeChart) gradeChart.destroy();
     gradeChart = new Chart(document.getElementById('gradeChart'), {
         type: 'bar',
         data: {
-            labels: Object.keys(gradeData),
-            datasets: [{ label: 'Bil. Murid', data: Object.values(gradeData), backgroundColor: '#3b82f6' }]
-        }
+            labels: Object.keys(gradeData).sort(),
+            datasets: [{ 
+                label: 'Bil. Murid', 
+                data: Object.values(gradeData), 
+                backgroundColor: '#3b82f6',
+                borderRadius: 5
+            }]
+        },
+        options: { responsive: true }
     });
 
-    // 3. UPDATE CARTA PAKK
+    // 3. CARTA PAKK
     const pakkData = {};
-    data.forEach(d => { let val = d[colPakk] || "TIADA DATA"; pakkData[val] = (pakkData[val] || 0) + 1; });
+    data.forEach(d => { 
+        let val = d[colPakk] || "TIADA MAKLUMAT"; 
+        if(val === "" || val === "0") val = "TIADA MAKLUMAT";
+        pakkData[val] = (pakkData[val] || 0) + 1; 
+    });
 
-    if (pakkChart) pakkChart.destroy(); // Padam carta lama sebelum bina baru
+    if (pakkChart) pakkChart.destroy();
     pakkChart = new Chart(document.getElementById('pakkChart'), {
         type: 'doughnut',
         data: {
             labels: Object.keys(pakkData),
-            datasets: [{ data: Object.values(pakkData), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }]
+            datasets: [{ 
+                data: Object.values(pakkData), 
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'] 
+            }]
+        },
+        options: { 
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 
-    // 4. UPDATE JADUAL (Destroy & Re-init DataTable)
+    // 4. JADUAL MURID
     if ($.fn.DataTable.isDataTable('#tableMurid')) {
         $('#tableMurid').DataTable().clear().destroy();
     }
@@ -168,18 +203,27 @@ function processData(data) {
     const tableBody = document.querySelector('#tableMurid tbody');
     tableBody.innerHTML = ""; 
     data.forEach(d => {
+        // Logik warna status
+        let statusAP = String(d[colStatusF2] || "");
+        let colorClass = statusAP.includes("ARUS  PERDANA") ? "text-green-600 font-bold" : "text-blue-700 font-semibold";
+
         tableBody.innerHTML += `
-            <tr>
-                <td>${d[colNama] || '-'}</td>
-                <td>${d[colSekolah] || '-'}</td>
-                <td class="text-center">${d[colDarjah] || '-'}</td>
-                <td class="text-xs">${d[colStatusF1] || '-'}</td>
-                <td class="font-bold text-blue-700 text-xs">${d[colStatusF2] || '-'}</td>
-                <td class="text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
+            <tr class="hover:bg-gray-50 border-b">
+                <td class="p-2 border uppercase">${d[colNama] || '-'}</td>
+                <td class="p-2 border text-xs">${d[colSekolah] || '-'}</td>
+                <td class="p-2 border text-center">${d[colDarjah] || '-'}</td>
+                <td class="p-2 border text-xs text-gray-500">${d[colStatusF1] || '-'}</td>
+                <td class="p-2 border text-xs ${colorClass}">${statusAP || '-'}</td>
+                <td class="p-2 border text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
             </tr>
         `;
     });
-    $('#tableMurid').DataTable({ responsive: true });
+    $('#tableMurid').DataTable({ 
+        responsive: true,
+        pageLength: 10,
+        order: [[2, 'asc']], // Susun ikut Darjah secara default
+        language: { search: "Cari Murid/Sekolah/Status:" }
+    });
 }
     </script>
 </body>
