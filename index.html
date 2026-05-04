@@ -216,66 +216,131 @@
 
         // 4. Paparan Utama
         function renderDashboard(data) {
-            // Mapping Kolum Dinamik
-            const getCol = (search) => Object.keys(data[0] || {}).find(k => k.includes(search));
-            const colStatusF2 = getCol("FASA PELEPASAN 2");
-            const colOKU = getCol("STATUS OKU (FASA PELEPASAN 2)") || getCol("OKU");
-            const colPakk = getCol("KATEGORI PAKK") || getCol("PAKK");
+    // 1. Mapping Kolum Dinamik yang lebih kuat
+    const keys = Object.keys(data[0] || {});
+    const getCol = (searchTerms) => keys.find(k => searchTerms.some(term => k.toUpperCase().includes(term.toUpperCase())));
 
-            // Statistik
-            document.getElementById('statTotal').innerText = data.length;
-            document.getElementById('statLulus').innerText = data.filter(d => String(d[colStatusF2]).includes("ARUS  PERDANA")).length;
-            document.getElementById('statSekolah').innerText = new Set(data.map(d => d["NAMA SEKOLAH"])).size;
-            document.getElementById('statOKU').innerText = data.filter(d => String(d[colOKU]).includes("YA")).length;
+    const colNama = getCol(["NAMA MURID"]);
+    const colSekolah = getCol(["NAMA SEKOLAH"]);
+    const colDarjah = getCol(["DARJAH"]);
+    const colStatusF2 = getCol(["FASA PELEPASAN 2", "TERKINI"]);
+    const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "OKU"]);
+    const colPakk = getCol(["KATEGORI PAKK", "KATEGORI_PAKK"]);
 
-            // Carta Darjah
-            const gMap = {};
-            data.forEach(d => gMap[d.DARJAH] = (gMap[d.DARJAH] || 0) + 1);
-            if(gradeChart) gradeChart.destroy();
-            gradeChart = new Chart(document.getElementById('gradeChart'), {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(gMap).sort(),
-                    datasets: [{ label: 'Murid', data: Object.values(gMap), backgroundColor: '#6366f1', borderRadius: 8 }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+    // 2. Pembersihan Data & Pengiraan Statistik
+    // .replace(/\s+/g, ' ') bermaksud: tukar 2 atau 3 space menjadi 1 space sahaja.
+    const lulusCount = data.filter(d => {
+        let val = String(d[colStatusF2] || "").replace(/\s+/g, ' ').toUpperCase();
+        return val.includes("ARUS PERDANA");
+    }).length;
 
-            // Carta PAKK
-            const pMap = {};
-            data.forEach(d => { let v = d[colPakk] || "TIADA"; pMap[v] = (pMap[v] || 0) + 1; });
-            if(pakkChart) pakkChart.destroy();
-            pakkChart = new Chart(document.getElementById('pakkChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(pMap),
-                    datasets: [{ data: Object.values(pMap), backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6'] }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
-            });
+    const okuCount = data.filter(d => {
+        let val = String(d[colOKU] || "").toUpperCase().trim();
+        return val === "YA";
+    }).length;
 
-            // Jadual
-            if ($.fn.DataTable.isDataTable('#tableMurid')) $('#tableMurid').DataTable().destroy();
-            const tableBody = document.querySelector('#tableMurid tbody');
-            tableBody.innerHTML = data.map(d => `
-                <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-3 font-semibold text-xs uppercase">${d["NAMA MURID"]}</td>
-                    <td class="p-3 text-[11px] text-slate-500">${d["NAMA SEKOLAH"]}</td>
-                    <td class="p-3 text-center font-bold text-indigo-600">${d["DARJAH"]}</td>
-                    <td class="p-3">
-                        <span class="px-2 py-1 rounded-md text-[10px] font-bold ${String(d[colStatusF2]).includes('ARUS  PERDANA') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'} uppercase">
-                            ${d[colStatusF2] || '-'}
-                        </span>
-                    </td>
-                    <td class="p-3 text-center text-xs">${String(d[colOKU]).includes("YA") ? '✅' : '❌'}</td>
-                </tr>
-            `).join('');
-            
-            $('#tableMurid').DataTable({ 
-                pageLength: 10, 
-                language: { search: "_INPUT_", searchPlaceholder: "Carian Pantas..." } 
-            });
+    const peratusLulus = data.length > 0 ? ((lulusCount / data.length) * 100).toFixed(1) : 0;
+
+    // Masukkan ke UI
+    document.getElementById('statTotal').innerText = data.length;
+    document.getElementById('statLulus').innerText = lulusCount; // Sekarang sepatutnya bukan 0
+    document.getElementById('statSekolah').innerText = new Set(data.map(d => d[colSekolah])).size;
+    document.getElementById('statOKU').innerText = okuCount;
+
+    // 3. CARTA DARJAH
+    const gMap = {};
+    data.forEach(d => {
+        let v = d[colDarjah] || "N/A";
+        gMap[v] = (gMap[v] || 0) + 1;
+    });
+
+    if(gradeChart) gradeChart.destroy();
+    gradeChart = new Chart(document.getElementById('gradeChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(gMap).sort(),
+            datasets: [{
+                label: 'Bil. Murid',
+                data: Object.values(gMap),
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                hoverBackgroundColor: '#4f46e5',
+                borderRadius: 10,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { display: false } },
+                x: { grid: { display: false } }
+            }
         }
+    });
+
+    // 4. CARTA PAKK (Doughnut)
+    const pMap = {};
+    data.forEach(d => {
+        let v = String(d[colPakk] || "").trim().toUpperCase();
+        if (!v || v === "0" || v === "NULL") v = "TIADA MAKLUMAT";
+        pMap[v] = (pMap[v] || 0) + 1;
+    });
+
+    if(pakkChart) pakkChart.destroy();
+    pakkChart = new Chart(document.getElementById('pakkChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(pMap),
+            datasets: [{
+                data: Object.values(pMap),
+                backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#94a3b8'],
+                borderWidth: 4,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 11 } } }
+            }
+        }
+    });
+
+    // 5. JADUAL MURID (DataTable)
+    if ($.fn.DataTable.isDataTable('#tableMurid')) $('#tableMurid').DataTable().destroy();
+    const tableBody = document.querySelector('#tableMurid tbody');
+    tableBody.innerHTML = data.map(d => {
+        let statusText = String(d[colStatusF2] || "").replace(/\s+/g, ' ');
+        let isLulus = statusText.toUpperCase().includes("ARUS PERDANA");
+        let statusClass = isLulus ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-indigo-50 text-indigo-700 border-indigo-100";
+        
+        return `
+            <tr class="hover:bg-slate-50/50 transition-colors border-b border-slate-50">
+                <td class="p-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">${d[colNama] || '-'}</td>
+                <td class="p-4 text-[11px] text-slate-500 font-medium">${d[colSekolah] || '-'}</td>
+                <td class="p-4 text-center"><span class="bg-slate-100 px-2 py-1 rounded text-slate-600 font-bold">${d[colDarjah] || '-'}</span></td>
+                <td class="p-4">
+                    <span class="px-3 py-1.5 rounded-full text-[10px] font-bold border ${statusClass}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="p-4 text-center text-lg">${String(d[colOKU]).toUpperCase().trim() === "YA" ? '♿' : '<span class="opacity-20 text-xs">TIADA</span>'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    $('#tableMurid').DataTable({
+        pageLength: 10,
+        responsive: true,
+        dom: '<"flex flex-between"f>rt<"flex flex-between"ip>',
+        language: {
+            search: "",
+            searchPlaceholder: "Carian Pantas Murid...",
+            paginate: { next: "→", previous: "←" }
+        }
+    });
+}
 
         loadData();
         setInterval(loadData, 300000);
