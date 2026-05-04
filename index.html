@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pelepasan PMK 2025</title>
     
-    <!-- Google Fonts & Frameworks -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -16,50 +15,47 @@
         body { font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
         .card-hover:hover { transform: translateY(-5px); transition: all 0.3s ease; }
-        
-        /* DataTable Styling */
-        .dataTables_wrapper .dataTables_filter { margin-bottom: 20px; }
-        .dataTables_wrapper .dataTables_filter input {
+        .dataTables_filter { margin-bottom: 1.5rem; }
+        .dataTables_filter input {
             border: 1px solid #e2e8f0;
-            padding: 8px 15px;
-            border-radius: 10px;
+            padding: 8px 16px;
+            border-radius: 12px;
+            width: 300px;
             outline: none;
-            width: 250px;
         }
-        table.dataTable thead th { border-bottom: 1px solid #e2e8f0 !important; }
         .dataTables_wrapper .dataTables_paginate .paginate_button.current { 
-            background: #1e40af !important; color: white !important; border-radius: 8px; border: none;
+            background: #1e40af !important; color: white !important; border-radius: 10px; border: none;
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
     <!-- Navbar -->
     <nav class="bg-indigo-900 text-white shadow-xl sticky top-0 z-50">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-white p-2 rounded-lg text-indigo-900">
+                <div class="bg-white p-2 rounded-xl text-indigo-900 shadow-inner">
                     <i data-lucide="layout-dashboard"></i>
                 </div>
-                <h1 class="text-lg font-bold tracking-tight uppercase">Dashboard Pelepasan PMK 2025</h1>
+                <h1 class="text-xl font-extrabold tracking-tight uppercase">PMK Analisis 2025</h1>
             </div>
-            <div id="lastUpdated" class="text-xs opacity-70 italic">Memuatkan data...</div>
+            <div id="lastUpdated" class="text-xs font-medium opacity-60">Memuatkan data...</div>
         </div>
     </nav>
 
     <div class="container mx-auto px-6 py-8">
         
         <!-- Filter Bar -->
-        <div class="glass p-6 rounded-2xl shadow-sm mb-8 flex flex-wrap gap-4 items-center border border-white">
-            <div class="flex-1 min-w-[250px]">
-                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Pilih Sekolah</label>
-                <select id="schoolFilter" class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+        <div class="glass p-6 rounded-3xl shadow-sm mb-8 flex flex-wrap gap-4 items-center border border-white">
+            <div class="flex-1 min-w-[280px]">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Pilih Sekolah</label>
+                <select id="schoolFilter" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer transition-all">
                     <option value="ALL">SEMUA SEKOLAH</option>
                 </select>
             </div>
             <div class="w-48">
-                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Tapis Darjah</label>
-                <select id="gradeFilter" class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Tapis Darjah</label>
+                <select id="gradeFilter" class="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
                     <option value="ALL">SEMUA</option>
                     <option value="2">TAHUN 2</option>
                     <option value="3">TAHUN 3</option>
@@ -69,85 +65,82 @@
                 </select>
             </div>
             <div class="pt-6">
-                <button onclick="resetFilters()" class="bg-slate-200 hover:bg-slate-300 px-4 py-2 rounded-xl text-slate-700 text-sm font-medium transition-all flex items-center gap-2">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+                <button onclick="resetFilters()" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-5 py-3 rounded-2xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reset
                 </button>
             </div>
         </div>
 
         <!-- KPI Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 card-hover">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Jumlah Murid</p>
-                        <h3 id="statTotal" class="text-3xl font-bold mt-1">0</h3>
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Jumlah Murid</p>
+                        <h3 id="statTotal" class="text-4xl font-black mt-1">0</h3>
                     </div>
-                    <div class="bg-indigo-100 p-3 rounded-xl text-indigo-600"><i data-lucide="users"></i></div>
+                    <div class="bg-indigo-50 p-4 rounded-2xl text-indigo-500"><i data-lucide="users-2"></i></div>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 card-hover">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Arus Perdana</p>
-                        <h3 id="statLulus" class="text-3xl font-bold mt-1 text-emerald-600">0</h3>
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Lulus Arus Perdana</p>
+                        <h3 id="statLulus" class="text-4xl font-black mt-1 text-emerald-500">0</h3>
                     </div>
-                    <div class="bg-emerald-100 p-3 rounded-xl text-emerald-600"><i data-lucide="check-circle-2"></i></div>
+                    <div class="bg-emerald-50 p-4 rounded-2xl text-emerald-500"><i data-lucide="check-circle"></i></div>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 card-hover">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Sekolah</p>
-                        <h3 id="statSekolah" class="text-3xl font-bold mt-1">0</h3>
+                        <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Sekolah Terlibat</p>
+                        <h3 id="statSekolah" class="text-4xl font-black mt-1 text-orange-500">0</h3>
                     </div>
-                    <div class="bg-orange-100 p-3 rounded-xl text-orange-600"><i data-lucide="school"></i></div>
+                    <div class="bg-orange-50 p-4 rounded-2xl text-orange-500"><i data-lucide="home"></i></div>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover text-rose-600">
+            <div class="bg-indigo-600 p-6 rounded-3xl shadow-lg card-hover text-white">
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Murid OKU</p>
-                        <h3 id="statOKU" class="text-3xl font-bold mt-1">0</h3>
+                        <p class="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">Kadar Pelepasan</p>
+                        <h3 id="statKadar" class="text-4xl font-black mt-1">0%</h3>
                     </div>
-                    <div class="bg-rose-100 p-3 rounded-xl"><i data-lucide="info"></i></div>
+                    <div class="bg-indigo-500 p-4 rounded-2xl text-white"><i data-lucide="trending-up"></i></div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2">
-                    <i data-lucide="bar-chart-2" class="w-5 h-5 text-indigo-500"></i> Analisis Mengikut Darjah
-                </h4>
-                <div class="h-64"><canvas id="gradeChart"></canvas></div>
-            </div>
-            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2">
-                    <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-500"></i> Kategori PAKK (Prasekolah)
-                </h4>
-                <div class="h-64"><canvas id="pakkChart"></canvas></div>
-            </div>
+        <!-- Main Chart -->
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 mb-10">
+            <h4 class="font-black text-slate-700 mb-8 flex items-center gap-3 text-lg uppercase tracking-tight">
+                <span class="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                Analisis Bilangan Murid Mengikut Darjah
+            </h4>
+            <div class="h-80"><canvas id="gradeChart"></canvas></div>
         </div>
 
         <!-- Table Card -->
-        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-            <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2 underline decoration-indigo-200">
-                <i data-lucide="list-checks" class="w-5 h-5"></i> Senarai Perincian Murid
-            </h4>
-            <table id="tableMurid" class="w-full text-left">
-                <thead>
-                    <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
-                        <th class="p-3">Nama Murid</th>
-                        <th class="p-3">Sekolah</th>
-                        <th class="p-3 text-center">Darjah</th>
-                        <th class="p-3">Pencapaian Akhir (F2)</th>
-                        <th class="p-3 text-center">Status OKU</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-slate-100"></tbody>
-            </table>
+        <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-8">
+                <h4 class="font-black text-slate-700 flex items-center gap-3 text-lg uppercase tracking-tight">
+                    <span class="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                    Senarai Perincian Murid
+                </h4>
+            </div>
+            <div class="overflow-x-auto">
+                <table id="tableMurid" class="w-full">
+                    <thead>
+                        <tr class="text-slate-400 text-[10px] uppercase font-bold tracking-widest border-b border-slate-100">
+                            <th class="pb-4 pt-2">Nama Murid</th>
+                            <th class="pb-4 pt-2">Sekolah</th>
+                            <th class="pb-4 pt-2 text-center">Darjah</th>
+                            <th class="pb-4 pt-2">Pencapaian F2</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-50 font-medium"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -158,7 +151,7 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbx9NW2fwiJZAYOAfRfBlfDDLnoABkj4uJ4UUZE6yPWzdhGoi8Qb9toMEIg5Vy2rFVG4bQ/exec";
         let masterData = [];
-        let gradeChart, pakkChart;
+        let gradeChart;
 
         lucide.createIcons();
 
@@ -166,14 +159,9 @@
             try {
                 const res = await fetch(API_URL + "?t=" + new Date().getTime());
                 masterData = await res.json();
-                
-                // DEBUG: Ini akan membantu anda melihat nama kolum sebenar di F12 Console
-                console.log("Tajuk Kolum Dikesan:", Object.keys(masterData[0]));
-                
                 populateFilters(masterData);
                 renderDashboard(masterData);
-                
-                document.getElementById('lastUpdated').innerText = "Data Terkini: " + new Date().toLocaleTimeString();
+                document.getElementById('lastUpdated').innerText = "Dikemaskini: " + new Date().toLocaleTimeString();
             } catch (err) {
                 console.error("Fetch error:", err);
                 document.getElementById('lastUpdated').innerText = "Ralat memuatkan data.";
@@ -216,42 +204,22 @@
             if (!data || data.length === 0) return;
 
             const keys = Object.keys(data[0]);
-            
-            // FUNGSI CARI KOLUM YANG LEBIH SMART
-            const getCol = (terms) => {
-                return keys.find(k => {
-                    const keyUpper = k.toUpperCase();
-                    return terms.some(t => keyUpper.includes(t.toUpperCase()));
-                });
-            };
+            const getCol = (terms) => keys.find(k => terms.some(t => k.toUpperCase().includes(t.toUpperCase())));
 
-            // Mapping yang telah diperkukuhkan
-            const colNama = getCol(["NAMA MURID"]) || "NAMA MURID";
-            const colSekolah = getCol(["NAMA SEKOLAH"]) || "NAMA SEKOLAH";
-            const colDarjah = getCol(["DARJAH"]) || "DARJAH";
+            const colNama = getCol(["NAMA MURID"]);
+            const colSekolah = getCol(["NAMA SEKOLAH"]);
+            const colDarjah = getCol(["DARJAH"]);
             const colStatusF2 = getCol(["FASA PELEPASAN 2", "TERKINI"]);
-            const colOKU = getCol(["STATUS OKU", "OKU"]);
-            const colPakk = getCol(["KATEGORI PAKK", "PAKK"]);
 
             // 1. STATISTIK
-            document.getElementById('statTotal').innerText = data.length;
-            
-            // Kira Arus Perdana
-            const lulusCount = data.filter(d => {
-                let val = String(d[colStatusF2] || "").replace(/\s+/g, ' ').toUpperCase();
-                return val.includes("ARUS PERDANA");
-            }).length;
-            document.getElementById('statLulus').innerText = lulusCount;
+            const total = data.length;
+            const lulusCount = data.filter(d => String(d[colStatusF2] || "").replace(/\s+/g, ' ').toUpperCase().includes("ARUS PERDANA")).length;
+            const kadarPelepasan = total > 0 ? ((lulusCount / total) * 100).toFixed(1) : 0;
 
-            // Kira Sekolah
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statLulus').innerText = lulusCount;
             document.getElementById('statSekolah').innerText = new Set(data.map(d => d[colSekolah])).size;
-            
-            // Kira OKU (Guna .includes supaya lebih selamat)
-            const okuCount = data.filter(d => {
-                let val = String(d[colOKU] || "").toUpperCase().trim();
-                return val.includes("YA");
-            }).length;
-            document.getElementById('statOKU').innerText = okuCount;
+            document.getElementById('statKadar').innerText = kadarPelepasan + "%";
 
             // 2. CARTA DARJAH
             const gMap = {};
@@ -261,57 +229,47 @@
                 type: 'bar',
                 data: {
                     labels: Object.keys(gMap).sort(),
-                    datasets: [{ label: 'Murid', data: Object.values(gMap), backgroundColor: '#818cf8', borderRadius: 8 }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-
-            // 3. CARTA PAKK
-            const pMap = {};
-            data.forEach(d => { 
-                let v = String(d[colPakk] || "").trim().toUpperCase();
-                if (!v || v === "" || v === "0" || v === "TIADA" || v === "NULL") v = "TIADA MAKLUMAT";
-                pMap[v] = (pMap[v] || 0) + 1; 
-            });
-            if(pakkChart) pakkChart.destroy();
-            pakkChart = new Chart(document.getElementById('pakkChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(pMap),
                     datasets: [{ 
-                        data: Object.values(pMap), 
-                        backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#94a3b8'],
-                        borderWidth: 4, borderColor: '#ffffff'
+                        label: 'Murid', 
+                        data: Object.values(gMap), 
+                        backgroundColor: '#6366f1',
+                        borderRadius: 12,
+                        barThickness: 40
                     }]
                 },
-                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } }
+                }
             });
 
-            // 4. JADUAL
+            // 3. JADUAL
             if ($.fn.DataTable.isDataTable('#tableMurid')) $('#tableMurid').DataTable().destroy();
             const tableBody = document.querySelector('#tableMurid tbody');
             tableBody.innerHTML = data.map(d => {
-                let statusClean = String(d[colStatusF2] || "").replace(/\s+/g, ' ');
-                let isLulus = statusClean.toUpperCase().includes("ARUS PERDANA");
-                let stOKU = String(d[colOKU] || "").toUpperCase().trim();
-                let hasOKU = stOKU.includes("YA");
+                let statusText = String(d[colStatusF2] || "").replace(/\s+/g, ' ');
+                let isLulus = statusText.toUpperCase().includes("ARUS PERDANA");
                 
                 return `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-3 font-semibold text-xs uppercase">${d[colNama] || '-'}</td>
-                        <td class="p-3 text-[10px] text-slate-500">${d[colSekolah] || '-'}</td>
-                        <td class="p-3 text-center font-bold text-indigo-600">${d[colDarjah] || '-'}</td>
-                        <td class="p-3">
-                            <span class="px-2 py-1 rounded-lg text-[9px] font-bold border ${isLulus ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-blue-50 text-blue-700 border-blue-100'} uppercase">
-                                ${statusClean}
+                    <tr class="hover:bg-indigo-50/30 transition-colors">
+                        <td class="p-4 uppercase text-xs font-bold text-slate-700">${d[colNama] || '-'}</td>
+                        <td class="p-4 text-[10px] text-slate-500 font-semibold">${d[colSekolah] || '-'}</td>
+                        <td class="p-4 text-center font-black text-indigo-600">${d[colDarjah] || '-'}</td>
+                        <td class="p-4">
+                            <span class="px-3 py-1 rounded-xl text-[9px] font-black border ${isLulus ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-indigo-50 text-indigo-600 border-indigo-100'} uppercase">
+                                ${statusText}
                             </span>
                         </td>
-                        <td class="p-3 text-center text-xs font-bold ${hasOKU ? 'text-rose-600' : 'text-slate-300'}">${hasOKU ? 'YA' : 'TIDAK'}</td>
                     </tr>
                 `;
             }).join('');
             
-            $('#tableMurid').DataTable({ pageLength: 10, responsive: true, language: { search: "", searchPlaceholder: "Cari..." } });
+            $('#tableMurid').DataTable({ 
+                pageLength: 10, 
+                responsive: true,
+                language: { search: "", searchPlaceholder: "Carian Pantas Murid..." }
+            });
         }
 
         loadData();
