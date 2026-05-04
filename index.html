@@ -83,37 +83,38 @@
         // GANTIKAN DENGAN URL WEB APP GAS ANDA
         const API_URL = "https://script.google.com/macros/s/AKfycbx9NW2fwiJZAYOAfRfBlfDDLnoABkj4uJ4UUZE6yPWzdhGoi8Qb9toMEIg5Vy2rFVG4bQ/exec";
 
-        fetch(API_URL)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('content').classList.remove('hidden');
-                processData(data);
-            });
+fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+        console.log("Data Diterima:", data[0]); // Debug di Console (F12)
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('content').classList.remove('hidden');
+        processData(data);
+    })
+    .catch(err => {
+        document.getElementById('loading').innerHTML = "❌ Gagal memuatkan data. Sila pastikan URL API betul.";
+    });
 
-        function processData(data) {
-    // Debug: Kita cetak satu baris data di console untuk pastikan ejaan kolum betul
-    console.log("Contoh satu baris data:", data[0]);
-
+function processData(data) {
+    // 1. STATISTIK UTAMA
     const total = data.length;
     
-    // Kira lulus berdasarkan kolum 'STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)'
-    // Nota: Pastikan ejaan ini sama seperti dalam fail CSV asal anda
-    const lulus = data.filter(d => {
-        let val = d["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"] || "";
-        return val.includes("ARUS PERDANA");
-    }).length;
+    // Cari kolum status pelepasan fasa 2 (kita guna keyword 'FASA PELEPASAN 2')
+    const colStatusF2 = Object.keys(data[0]).find(k => k.includes("STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"));
+    const colStatusF1 = Object.keys(data[0]).find(k => k.includes("STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 1)"));
+    const colOKU = Object.keys(data[0]).find(k => k.includes("STATUS OKU (FASA PELEPASAN 2)"));
+    const colPakk = "KATEGORI PAKK";
 
+    const lulus = data.filter(d => String(d[colStatusF2]).includes("ARUS PERDANA")).length;
     const sekolah = new Set(data.map(d => d["NAMA SEKOLAH"])).size;
-    
-    const oku = data.filter(d => d["STATUS OKU (FASA PELEPASAN 2)"] === "YA").length;
+    const oku = data.filter(d => String(d[colOKU]).toUpperCase() === "YA").length;
 
     document.getElementById('statTotal').innerText = total;
     document.getElementById('statLulus').innerText = lulus;
     document.getElementById('statSekolah').innerText = sekolah;
     document.getElementById('statOKU').innerText = oku;
 
-    // --- CARTA DARJAH ---
+    // 2. CARTA DARJAH
     const grades = {};
     data.forEach(d => {
         let g = d["DARJAH"] || "N/A";
@@ -132,27 +133,43 @@
         }
     });
 
-    // --- ISI JADUAL ---
+    // 3. CARTA PAKK
+    const pakkStats = {};
+    data.forEach(d => {
+        let p = d[colPakk] || "TIADA DATA";
+        pakkStats[p] = (pakkStats[p] || 0) + 1;
+    });
+
+    new Chart(document.getElementById('pakkChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(pakkStats),
+            datasets: [{
+                data: Object.values(pakkStats),
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
+            }]
+        }
+    });
+
+    // 4. JADUAL MURID
     const tableBody = document.querySelector('#tableMurid tbody');
-    tableBody.innerHTML = ""; // Bersihkan jadual
     data.forEach(d => {
         tableBody.innerHTML += `
-            <tr>
-                <td>${d["NAMA MURID"] || ""}</td>
-                <td>${d["NAMA SEKOLAH"] || ""}</td>
-                <td class="text-center">${d["DARJAH"] || ""}</td>
-                <td>${d["STATUS KEMAHIRAN MURID TERKINI BM (FASA PELEPASAN 1)"] || ""}</td>
-                <td class="font-bold text-blue-600">${d["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"] || ""}</td>
-                <td class="text-center">${d["STATUS OKU (FASA PELEPASAN 2)"] || "TIDAK"}</td>
+            <tr class="hover:bg-gray-50 border-b">
+                <td class="p-2">${d["NAMA MURID"]}</td>
+                <td class="p-2 text-xs">${d["NAMA SEKOLAH"]}</td>
+                <td class="p-2 text-center">${d["DARJAH"]}</td>
+                <td class="p-2 text-xs">${d[colStatusF1] || '-'}</td>
+                <td class="p-2 text-xs font-bold text-blue-700">${d[colStatusF2] || '-'}</td>
+                <td class="p-2 text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
             </tr>
         `;
     });
-    
-    // Re-initialize DataTable
-    if ($.fn.DataTable.isDataTable('#tableMurid')) {
-        $('#tableMurid').DataTable().destroy();
-    }
-    $('#tableMurid').DataTable({ pageLength: 10 });
+    $('#tableMurid').DataTable({ 
+        responsive: true,
+        pageLength: 10,
+        language: { search: "Cari Murid/Sekolah:" }
+    });
 }
     </script>
 </body>
