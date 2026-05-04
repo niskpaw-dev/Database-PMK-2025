@@ -86,90 +86,95 @@
 fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-        console.log("Data Diterima:", data[0]); // Debug di Console (F12)
+        console.log("Keys yang dijumpai:", Object.keys(data[0])); // Lihat senarai tajuk kolum di Console
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('content').classList.remove('hidden');
         processData(data);
     })
     .catch(err => {
-        document.getElementById('loading').innerHTML = "❌ Gagal memuatkan data. Sila pastikan URL API betul.";
+        document.getElementById('loading').innerHTML = "❌ Gagal memuatkan data.";
     });
 
 function processData(data) {
-    // 1. STATISTIK UTAMA
-    const total = data.length;
-    
-    // Cari kolum status pelepasan fasa 2 (kita guna keyword 'FASA PELEPASAN 2')
-    const colStatusF2 = Object.keys(data[0]).find(k => k.includes("STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"));
-    const colStatusF1 = Object.keys(data[0]).find(k => k.includes("STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 1)"));
-    const colOKU = Object.keys(data[0]).find(k => k.includes("STATUS OKU (FASA PELEPASAN 2)"));
-    const colPakk = "KATEGORI PAKK";
+    // FUNGSI PEMBANTU: Cari nama kolum walaupun ada sedikit perbezaan ejaan
+    const getCol = (searchTerms) => {
+        const keys = Object.keys(data[0]);
+        return keys.find(k => searchTerms.some(term => k.includes(term.toUpperCase())));
+    };
 
-    const lulus = data.filter(d => String(d[colStatusF2]).includes("ARUS PERDANA")).length;
-    const sekolah = new Set(data.map(d => d["NAMA SEKOLAH"])).size;
-    const oku = data.filter(d => String(d[colOKU]).toUpperCase() === "YA").length;
+    // MAPPING KOLUM (Mencari kolum secara dinamik)
+    const colNama = getCol(["NAMA MURID"]);
+    const colSekolah = getCol(["NAMA SEKOLAH", "KOD SEKOLAH"]);
+    const colDarjah = getCol(["DARJAH"]);
+    const colStatusF1 = getCol(["FASA PELEPASAN 1"]);
+    const colStatusF2 = getCol(["FASA PELEPASAN 2", "TERKINI"]);
+    const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "STATUS OKU DATA AWAL", "OKU"]);
+    const colPakk = getCol(["PAKK"]);
+
+    // 1. PENGIRAAN STATISTIK
+    const total = data.length;
+    const lulus = data.filter(d => String(d[colStatusF2]).toUpperCase().includes("ARUS PERDANA")).length;
+    const sekolahCount = new Set(data.map(d => d[colSekolah])).size;
+    const okuCount = data.filter(d => String(d[colOKU]).toUpperCase() === "YA").length;
 
     document.getElementById('statTotal').innerText = total;
     document.getElementById('statLulus').innerText = lulus;
-    document.getElementById('statSekolah').innerText = sekolah;
-    document.getElementById('statOKU').innerText = oku;
+    document.getElementById('statSekolah').innerText = sekolahCount;
+    document.getElementById('statOKU').innerText = okuCount;
 
     // 2. CARTA DARJAH
-    const grades = {};
+    const gradeData = {};
     data.forEach(d => {
-        let g = d["DARJAH"] || "N/A";
-        grades[g] = (grades[g] || 0) + 1;
+        let val = d[colDarjah] || "N/A";
+        gradeData[val] = (gradeData[val] || 0) + 1;
     });
 
     new Chart(document.getElementById('gradeChart'), {
         type: 'bar',
         data: {
-            labels: Object.keys(grades),
+            labels: Object.keys(gradeData),
             datasets: [{
                 label: 'Bil. Murid',
-                data: Object.values(grades),
+                data: Object.values(gradeData),
                 backgroundColor: '#3b82f6'
             }]
         }
     });
 
     // 3. CARTA PAKK
-    const pakkStats = {};
+    const pakkData = {};
     data.forEach(d => {
-        let p = d[colPakk] || "TIADA DATA";
-        pakkStats[p] = (pakkStats[p] || 0) + 1;
+        let val = d[colPakk] || "TIADA DATA";
+        pakkData[val] = (pakkData[val] || 0) + 1;
     });
 
     new Chart(document.getElementById('pakkChart'), {
-        type: 'pie',
+        type: 'doughnut',
         data: {
-            labels: Object.keys(pakkStats),
+            labels: Object.keys(pakkData),
             datasets: [{
-                data: Object.values(pakkStats),
+                data: Object.values(pakkData),
                 backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
             }]
         }
     });
 
-    // 4. JADUAL MURID
+    // 4. JADUAL (DATATABLES)
     const tableBody = document.querySelector('#tableMurid tbody');
+    tableBody.innerHTML = ""; 
     data.forEach(d => {
         tableBody.innerHTML += `
-            <tr class="hover:bg-gray-50 border-b">
-                <td class="p-2">${d["NAMA MURID"]}</td>
-                <td class="p-2 text-xs">${d["NAMA SEKOLAH"]}</td>
-                <td class="p-2 text-center">${d["DARJAH"]}</td>
-                <td class="p-2 text-xs">${d[colStatusF1] || '-'}</td>
-                <td class="p-2 text-xs font-bold text-blue-700">${d[colStatusF2] || '-'}</td>
-                <td class="p-2 text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
+            <tr>
+                <td class="p-2 border">${d[colNama] || '-'}</td>
+                <td class="p-2 border text-xs">${d[colSekolah] || '-'}</td>
+                <td class="p-2 border text-center">${d[colDarjah] || '-'}</td>
+                <td class="p-2 border text-xs">${d[colStatusF1] || '-'}</td>
+                <td class="p-2 border text-xs font-bold text-blue-700">${d[colStatusF2] || '-'}</td>
+                <td class="p-2 border text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
             </tr>
         `;
     });
-    $('#tableMurid').DataTable({ 
-        responsive: true,
-        pageLength: 10,
-        language: { search: "Cari Murid/Sekolah:" }
-    });
+    $('#tableMurid').DataTable({ responsive: true });
 }
     </script>
 </body>
