@@ -160,13 +160,15 @@
         let masterData = [];
         let gradeChart, pakkChart;
 
+        lucide.createIcons();
+
         async function loadData() {
             try {
                 const res = await fetch(API_URL + "?t=" + new Date().getTime());
                 masterData = await res.json();
                 
-                // Initialize Icons
-                lucide.createIcons();
+                // DEBUG: Ini akan membantu anda melihat nama kolum sebenar di F12 Console
+                console.log("Tajuk Kolum Dikesan:", Object.keys(masterData[0]));
                 
                 populateFilters(masterData);
                 renderDashboard(masterData);
@@ -181,8 +183,6 @@
         function populateFilters(data) {
             const schoolDropdown = document.getElementById('schoolFilter');
             const schools = [...new Set(data.map(d => d["NAMA SEKOLAH"]))].sort();
-            
-            // Clean dropdown first
             schoolDropdown.innerHTML = '<option value="ALL">SEMUA SEKOLAH</option>';
             schools.forEach(school => {
                 if(school) {
@@ -197,16 +197,9 @@
         function applyFilters() {
             const selectedSchool = document.getElementById('schoolFilter').value;
             const selectedGrade = document.getElementById('gradeFilter').value;
-
             let filtered = masterData;
-
-            if (selectedSchool !== "ALL") {
-                filtered = filtered.filter(d => d["NAMA SEKOLAH"] === selectedSchool);
-            }
-            if (selectedGrade !== "ALL") {
-                filtered = filtered.filter(d => String(d["DARJAH"]) === selectedGrade);
-            }
-
+            if (selectedSchool !== "ALL") filtered = filtered.filter(d => d["NAMA SEKOLAH"] === selectedSchool);
+            if (selectedGrade !== "ALL") filtered = filtered.filter(d => String(d["DARJAH"]) === selectedGrade);
             renderDashboard(filtered);
         }
 
@@ -222,34 +215,45 @@
         function renderDashboard(data) {
             if (!data || data.length === 0) return;
 
-            // 1. Mapping Kolum secara dinamik dan "Smart"
             const keys = Object.keys(data[0]);
-            const getCol = (terms) => keys.find(k => terms.some(t => k.toUpperCase().includes(t.toUpperCase())));
+            
+            // FUNGSI CARI KOLUM YANG LEBIH SMART
+            const getCol = (terms) => {
+                return keys.find(k => {
+                    const keyUpper = k.toUpperCase();
+                    return terms.some(t => keyUpper.includes(t.toUpperCase()));
+                });
+            };
 
-            const colNama = getCol(["NAMA MURID"]);
-            const colSekolah = getCol(["NAMA SEKOLAH"]);
-            const colDarjah = getCol(["DARJAH"]);
+            // Mapping yang telah diperkukuhkan
+            const colNama = getCol(["NAMA MURID"]) || "NAMA MURID";
+            const colSekolah = getCol(["NAMA SEKOLAH"]) || "NAMA SEKOLAH";
+            const colDarjah = getCol(["DARJAH"]) || "DARJAH";
             const colStatusF2 = getCol(["FASA PELEPASAN 2", "TERKINI"]);
-            const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "OKU"]);
+            const colOKU = getCol(["STATUS OKU", "OKU"]);
             const colPakk = getCol(["KATEGORI PAKK", "PAKK"]);
 
-            // 2. Statistik
-            const total = data.length;
-            const lulusCount = data.filter(d => String(d[colStatusF2] || "").replace(/\s+/g, ' ').toUpperCase().includes("ARUS PERDANA")).length;
-            const schoolCount = new Set(data.map(d => d[colSekolah])).size;
+            // 1. STATISTIK
+            document.getElementById('statTotal').innerText = data.length;
             
-            // Logik OKU yang lebih luas (terima 'YA' atau catatan lain)
+            // Kira Arus Perdana
+            const lulusCount = data.filter(d => {
+                let val = String(d[colStatusF2] || "").replace(/\s+/g, ' ').toUpperCase();
+                return val.includes("ARUS PERDANA");
+            }).length;
+            document.getElementById('statLulus').innerText = lulusCount;
+
+            // Kira Sekolah
+            document.getElementById('statSekolah').innerText = new Set(data.map(d => d[colSekolah])).size;
+            
+            // Kira OKU (Guna .includes supaya lebih selamat)
             const okuCount = data.filter(d => {
                 let val = String(d[colOKU] || "").toUpperCase().trim();
-                return val !== "TIDAK" && val !== "TIADA" && val !== "" && val !== "0";
+                return val.includes("YA");
             }).length;
-
-            document.getElementById('statTotal').innerText = total;
-            document.getElementById('statLulus').innerText = lulusCount;
-            document.getElementById('statSekolah').innerText = schoolCount;
             document.getElementById('statOKU').innerText = okuCount;
 
-            // 3. Carta Darjah (Bar)
+            // 2. CARTA DARJAH
             const gMap = {};
             data.forEach(d => { let v = d[colDarjah] || "N/A"; gMap[v] = (gMap[v] || 0) + 1; });
             if(gradeChart) gradeChart.destroy();
@@ -257,20 +261,16 @@
                 type: 'bar',
                 data: {
                     labels: Object.keys(gMap).sort(),
-                    datasets: [{ label: 'Murid', data: Object.values(gMap), backgroundColor: '#6366f1', borderRadius: 8 }]
+                    datasets: [{ label: 'Murid', data: Object.values(gMap), backgroundColor: '#818cf8', borderRadius: 8 }]
                 },
-                options: { 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } }
-                }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
 
-            // 4. Carta PAKK (Doughnut)
+            // 3. CARTA PAKK
             const pMap = {};
             data.forEach(d => { 
                 let v = String(d[colPakk] || "").trim().toUpperCase();
-                if (!v || v === "0" || v === "TIADA") v = "TIADA MAKLUMAT";
+                if (!v || v === "" || v === "0" || v === "TIADA" || v === "NULL") v = "TIADA MAKLUMAT";
                 pMap[v] = (pMap[v] || 0) + 1; 
             });
             if(pakkChart) pakkChart.destroy();
@@ -280,31 +280,25 @@
                     labels: Object.keys(pMap),
                     datasets: [{ 
                         data: Object.values(pMap), 
-                        backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#94a3b8'],
-                        borderWidth: 4,
-                        borderColor: '#ffffff'
+                        backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#94a3b8'],
+                        borderWidth: 4, borderColor: '#ffffff'
                     }]
                 },
-                options: { 
-                    maintainAspectRatio: false, 
-                    cutout: '70%',
-                    plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 10 } } } } 
-                }
+                options: { maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
             });
 
-            // 5. Jadual (DataTable)
+            // 4. JADUAL
             if ($.fn.DataTable.isDataTable('#tableMurid')) $('#tableMurid').DataTable().destroy();
             const tableBody = document.querySelector('#tableMurid tbody');
             tableBody.innerHTML = data.map(d => {
-                let statusRaw = String(d[colStatusF2] || "");
-                let statusClean = statusRaw.replace(/\s+/g, ' ');
+                let statusClean = String(d[colStatusF2] || "").replace(/\s+/g, ' ');
                 let isLulus = statusClean.toUpperCase().includes("ARUS PERDANA");
                 let stOKU = String(d[colOKU] || "").toUpperCase().trim();
-                let hasOKU = stOKU !== "TIDAK" && stOKU !== "" && stOKU !== "TIADA";
+                let hasOKU = stOKU.includes("YA");
                 
                 return `
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-3 font-semibold text-xs uppercase tracking-wide">${d[colNama] || '-'}</td>
+                        <td class="p-3 font-semibold text-xs uppercase">${d[colNama] || '-'}</td>
                         <td class="p-3 text-[10px] text-slate-500">${d[colSekolah] || '-'}</td>
                         <td class="p-3 text-center font-bold text-indigo-600">${d[colDarjah] || '-'}</td>
                         <td class="p-3">
@@ -317,16 +311,10 @@
                 `;
             }).join('');
             
-            $('#tableMurid').DataTable({ 
-                pageLength: 10, 
-                responsive: true,
-                language: { search: "", searchPlaceholder: "Carian Pantas..." }
-            });
+            $('#tableMurid').DataTable({ pageLength: 10, responsive: true, language: { search: "", searchPlaceholder: "Cari..." } });
         }
 
-        // Init
         loadData();
-        // Auto update setiap 5 minit
         setInterval(loadData, 300000);
     </script>
 </body>
