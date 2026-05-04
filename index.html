@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pelepasan PMK 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+    <nav class="bg-blue-900 p-4 text-white shadow-lg">
+        <div class="container mx-auto">
+            <h1 class="text-xl font-bold uppercase tracking-wider text-center">Dashboard Analisis Pelepasan 2 PMK 2025</h1>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center py-10 text-blue-600 font-bold">
+            Memuatkan Data dari Google Sheets...
+        </div>
+
+        <!-- Dashboard Content (Hidden until loaded) -->
+        <div id="content" class="hidden">
+            <!-- Scorecards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-blue-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Jumlah Murid</p>
+                    <h3 id="statTotal" class="text-3xl font-bold">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-green-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Lulus Arus Perdana</p>
+                    <h3 id="statLulus" class="text-3xl font-bold text-green-600">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-orange-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Bilangan Sekolah</p>
+                    <h3 id="statSekolah" class="text-3xl font-bold">0</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-red-500">
+                    <p class="text-gray-500 text-sm font-semibold uppercase">Murid OKU</p>
+                    <h3 id="statOKU" class="text-3xl font-bold text-red-600">0</h3>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="font-bold mb-4 text-gray-700">Analisis Perbandingan Darjah</h4>
+                    <canvas id="gradeChart"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="font-bold mb-4 text-gray-700">Kategori PAKK (Prasekolah)</h4>
+                    <canvas id="pakkChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Table Row -->
+            <div class="bg-white p-8 rounded-xl shadow-md overflow-x-auto">
+                <h4 class="font-bold mb-6 text-gray-700 underline">Senarai Perincian Murid</h4>
+                <table id="tableMurid" class="display w-full border-collapse">
+                    <thead class="bg-gray-100 text-xs">
+                        <tr>
+                            <th>NAMA MURID</th>
+                            <th>SEKOLAH</th>
+                            <th>DARJAH</th>
+                            <th>STATUS F1</th>
+                            <th>STATUS F2</th>
+                            <th>OKU</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        // GANTIKAN DENGAN URL WEB APP GAS ANDA
+        const API_URL = "https://script.google.com/macros/s/AKfycbx9NW2fwiJZAYOAfRfBlfDDLnoABkj4uJ4UUZE6yPWzdhGoi8Qb9toMEIg5Vy2rFVG4bQ/exec";
+
+        fetch(API_URL)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('content').classList.remove('hidden');
+                processData(data);
+            });
+
+        function processData(data) {
+            // 1. Hitung Statistik Utama
+            const total = data.length;
+            const lulus = data.filter(d => d["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"].includes("ARUS  PERDANA")).length;
+            const sekolah = new Set(data.map(d => d["KOD SEKOLAH"])).size;
+            const oku = data.filter(d => d["STATUS OKU (FASA PELEPASAN 2)"] === "YA").length;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statLulus').innerText = lulus;
+            document.getElementById('statSekolah').innerText = sekolah;
+            document.getElementById('statOKU').innerText = oku;
+
+            // 2. Data untuk Carta (Darjah)
+            const grades = {};
+            data.forEach(d => grades[d.DARJAH] = (grades[d.DARJAH] || 0) + 1);
+
+            new Chart(document.getElementById('gradeChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(grades),
+                    datasets: [{
+                        label: 'Bil. Murid',
+                        data: Object.values(grades),
+                        backgroundColor: '#3b82f6'
+                    }]
+                }
+            });
+
+            // 3. Data untuk Carta (PAKK)
+            const pakk = {};
+            data.forEach(d => {
+                let cat = d["KATEGORI PAKK"] || "TIADA";
+                pakk[cat] = (pakk[cat] || 0) + 1;
+            });
+
+            new Chart(document.getElementById('pakkChart'), {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(pakk),
+                    datasets: [{
+                        data: Object.values(pakk),
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#6366f1', '#a855f7']
+                    }]
+                }
+            });
+
+            // 4. Isi Jadual
+            const tableBody = document.querySelector('#tableMurid tbody');
+            data.forEach(d => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${d["NAMA MURID"]}</td>
+                        <td>${d["NAMA SEKOLAH"]}</td>
+                        <td class="text-center">${d["DARJAH"]}</td>
+                        <td>${d["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 1)"]}</td>
+                        <td class="font-bold text-blue-600">${d["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)"]}</td>
+                        <td class="text-center">${d["STATUS OKU (FASA PELEPASAN 2)"]}</td>
+                    </tr>
+                `;
+            });
+            $('#tableMurid').DataTable({ pageLength: 10 });
+        }
+    </script>
+</body>
+</html>
