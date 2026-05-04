@@ -4,227 +4,281 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pelepasan PMK 2025</title>
+    
+    <!-- Google Fonts & Frameworks -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-</head>
-<body class="bg-slate-50 min-h-screen">
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-    <nav class="bg-blue-900 p-4 text-white shadow-lg">
-        <div class="container mx-auto">
-            <h1 class="text-xl font-bold uppercase tracking-wider text-center">Dashboard Analisis Pelepasan 2 PMK 2025</h1>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .card-hover:hover { transform: translateY(-5px); transition: all 0.3s ease; }
+        table.dataTable { border-bottom: none !important; margin-top: 20px !important; }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current { 
+            background: #1e40af !important; color: white !important; border-radius: 8px; border: none;
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- Navbar -->
+    <nav class="bg-indigo-900 text-white shadow-xl sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-lg text-indigo-900">
+                    <i data-lucide="bar-chart-3"></i>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight uppercase">PMK Analisis 2025</h1>
+            </div>
+            <div id="lastUpdated" class="text-xs opacity-70 italic">Memuatkan data...</div>
         </div>
     </nav>
 
-    <div class="container mx-auto p-6">
-        <!-- Loading Spinner -->
-        <div id="loading" class="text-center py-10 text-blue-600 font-bold">
-            Memuatkan Data dari Google Sheets...
+    <div class="container mx-auto px-6 py-8">
+        
+        <!-- Filter Bar -->
+        <div class="glass p-6 rounded-2xl shadow-sm mb-8 flex flex-wrap gap-4 items-center border border-white">
+            <div class="flex-1 min-w-[250px]">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Pilih Sekolah</label>
+                <select id="schoolFilter" class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    <option value="ALL">SEMUA SEKOLAH</option>
+                </select>
+            </div>
+            <div class="w-48">
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-2">Tapis Darjah</label>
+                <select id="gradeFilter" class="w-full bg-white border border-slate-200 p-2.5 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                    <option value="ALL">SEMUA</option>
+                    <option value="2">TAHUN 2</option>
+                    <option value="3">TAHUN 3</option>
+                    <option value="4">TAHUN 4</option>
+                    <option value="5">TAHUN 5</option>
+                    <option value="6">TAHUN 6</option>
+                </select>
+            </div>
+            <div class="pt-6">
+                <button onclick="resetFilters()" class="text-indigo-600 text-sm font-medium hover:underline flex items-center gap-1">
+                    <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Reset
+                </button>
+            </div>
         </div>
 
-        <!-- Dashboard Content (Hidden until loaded) -->
-        <div id="content" class="hidden">
-            <!-- Scorecards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-blue-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Jumlah Murid</p>
-                    <h3 id="statTotal" class="text-3xl font-bold">0</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-green-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Lulus Arus Perdana</p>
-                    <h3 id="statLulus" class="text-3xl font-bold text-green-600">0</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-orange-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Bilangan Sekolah</p>
-                    <h3 id="statSekolah" class="text-3xl font-bold">0</h3>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md border-l-8 border-red-500">
-                    <p class="text-gray-500 text-sm font-semibold uppercase">Murid OKU</p>
-                    <h3 id="statOKU" class="text-3xl font-bold text-red-600">0</h3>
+        <!-- KPI Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Jumlah Murid</p>
+                        <h3 id="statTotal" class="text-3xl font-bold mt-1 tracking-tight">-</h3>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-xl text-blue-600"><i data-lucide="users"></i></div>
                 </div>
             </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Arus Perdana</p>
+                        <h3 id="statLulus" class="text-3xl font-bold mt-1 text-emerald-600">-</h3>
+                    </div>
+                    <div class="bg-emerald-100 p-3 rounded-xl text-emerald-600"><i data-lucide="award"></i></div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Sekolah</p>
+                        <h3 id="statSekolah" class="text-3xl font-bold mt-1">-</h3>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-xl text-orange-600"><i data-lucide="school"></i></div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 card-hover">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Murid OKU</p>
+                        <h3 id="statOKU" class="text-3xl font-bold mt-1 text-rose-600">-</h3>
+                    </div>
+                    <div class="bg-rose-100 p-3 rounded-xl text-rose-600"><i data-lucide="accessibility"></i></div>
+                </div>
+            </div>
+        </div>
 
-            <!-- Charts Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h4 class="font-bold mb-4 text-gray-700">Analisis Perbandingan Darjah</h4>
-                    <canvas id="gradeChart"></canvas>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-md">
-                    <h4 class="font-bold mb-4 text-gray-700">Kategori PAKK (Prasekolah)</h4>
-                    <canvas id="pakkChart"></canvas>
-                </div>
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2">
+                    <i data-lucide="bar-chart" class="w-5 h-5 text-indigo-500"></i> Taburan Mengikut Darjah
+                </h4>
+                <div class="h-64"><canvas id="gradeChart"></canvas></div>
             </div>
+            <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+                <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2">
+                    <i data-lucide="pie-chart" class="w-5 h-5 text-indigo-500"></i> Kategori PAKK
+                </h4>
+                <div class="h-64"><canvas id="pakkChart"></canvas></div>
+            </div>
+        </div>
 
-            <!-- Table Row -->
-            <div class="bg-white p-8 rounded-xl shadow-md overflow-x-auto">
-                <h4 class="font-bold mb-6 text-gray-700 underline">Senarai Perincian Murid</h4>
-                <table id="tableMurid" class="display w-full border-collapse">
-                    <thead class="bg-gray-100 text-xs">
-                        <tr>
-                            <th>NAMA MURID</th>
-                            <th>SEKOLAH</th>
-                            <th>DARJAH</th>
-                            <th>STATUS F1</th>
-                            <th>STATUS F2</th>
-                            <th>OKU</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm"></tbody>
-                </table>
-            </div>
+        <!-- Table -->
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <h4 class="font-bold text-slate-700 mb-6 flex items-center gap-2 underline decoration-indigo-200">
+                <i data-lucide="list" class="w-5 h-5"></i> Senarai Perincian Murid
+            </h4>
+            <table id="tableMurid" class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
+                        <th class="p-3">Nama Murid</th>
+                        <th class="p-3">Sekolah</th>
+                        <th class="p-3 text-center">Darjah</th>
+                        <th class="p-3 text-xs">Pencapaian F2</th>
+                        <th class="p-3 text-center">OKU</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-100"></tbody>
+            </table>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
     <script>
-        // GANTIKAN DENGAN URL WEB APP GAS ANDA
         const API_URL = "https://script.google.com/macros/s/AKfycbx9NW2fwiJZAYOAfRfBlfDDLnoABkj4uJ4UUZE6yPWzdhGoi8Qb9toMEIg5Vy2rFVG4bQ/exec";
-let gradeChart, pakkChart; // Simpan rujukan carta supaya boleh di-update
+        let masterData = [];
+        let gradeChart, pakkChart;
 
-// Fungsi untuk menarik data
-function fetchLatestData() {
-    console.log("Menarik data terkini...");
-    
-    // Tambah timestamp unik di hujung URL supaya browser tidak ambil data 'cache' lama
-    const fetchUrl = API_URL + "?t=" + new Date().getTime();
+        // Inisialisasi Ikon
+        lucide.createIcons();
 
-    fetch(fetchUrl)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('content').classList.remove('hidden');
-            
-            // Kemaskini masa terakhir dikemaskini (pilihan)
-            const masaTerkini = new Date().toLocaleTimeString();
-            console.log("Data dikemaskini pada: " + masaTerkini);
-
-            processData(data);
-        })
-        .catch(err => {
-            console.error("Gagal menarik data:", err);
-        });
-}
-
-// Jalankan kali pertama bila buka page
-fetchLatestData();
-
-// AUTO UPDATE: Jalankan fungsi ini setiap 5 minit (300000 milisaat)
-setInterval(fetchLatestData, 300000); 
-
-function processData(data) {
-    const getCol = (searchTerms) => {
-        const keys = Object.keys(data[0]);
-        // Cari kolum yang mengandungi kata kunci secara tepat
-        return keys.find(k => searchTerms.some(term => k.toUpperCase().includes(term.toUpperCase())));
-    };
-
-    // Mapping yang lebih tepat mengikut struktur fail anda
-    const colNama = getCol(["NAMA MURID"]);
-    const colSekolah = getCol(["NAMA SEKOLAH"]);
-    const colDarjah = getCol(["DARJAH"]);
-    const colStatusF1 = getCol(["FASA PELEPASAN 1"]);
-    const colStatusF2 = getCol(["STATUS MATA PELAJARAN TERKINI (FASA PELEPASAN 2)", "FASA PELEPASAN 2"]);
-    
-    // Kita cuba cari kolum OKU dalam fasa pelepasan 2 atau data awal
-    const colOKU = getCol(["STATUS OKU (FASA PELEPASAN 2)", "STATUS OKU DATA AWAL", "OKU"]);
-    const colPakk = getCol(["KATEGORI PAKK", "PAKK"]);
-
-    // 1. UPDATE STATISTIK
-    document.getElementById('statTotal').innerText = data.length;
-    
-    const lulusCount = data.filter(d => {
-        let val = String(d[colStatusF2] || "").toUpperCase();
-        return val.includes("ARUS PERDANA");
-    }).length;
-    document.getElementById('statLulus').innerText = lulusCount;
-    
-    document.getElementById('statSekolah').innerText = new Set(data.map(d => d[colSekolah])).size;
-    
-    const okuCount = data.filter(d => {
-        let val = String(d[colOKU] || "").toUpperCase();
-        return val === "YA" || val.includes("YA");
-    }).length;
-    document.getElementById('statOKU').innerText = okuCount;
-
-    // 2. CARTA DARJAH
-    const gradeData = {};
-    data.forEach(d => { 
-        let val = d[colDarjah] || "N/A"; 
-        gradeData[val] = (gradeData[val] || 0) + 1; 
-    });
-
-    if (gradeChart) gradeChart.destroy();
-    gradeChart = new Chart(document.getElementById('gradeChart'), {
-        type: 'bar',
-        data: {
-            labels: Object.keys(gradeData).sort(),
-            datasets: [{ 
-                label: 'Bil. Murid', 
-                data: Object.values(gradeData), 
-                backgroundColor: '#3b82f6',
-                borderRadius: 5
-            }]
-        },
-        options: { responsive: true }
-    });
-
-    // 3. CARTA PAKK
-    const pakkData = {};
-    data.forEach(d => { 
-        let val = d[colPakk] || "TIADA MAKLUMAT"; 
-        if(val === "" || val === "0") val = "TIADA MAKLUMAT";
-        pakkData[val] = (pakkData[val] || 0) + 1; 
-    });
-
-    if (pakkChart) pakkChart.destroy();
-    pakkChart = new Chart(document.getElementById('pakkChart'), {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(pakkData),
-            datasets: [{ 
-                data: Object.values(pakkData), 
-                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'] 
-            }]
-        },
-        options: { 
-            responsive: true,
-            plugins: { legend: { position: 'bottom' } }
+        // 1. Ambil Data
+        async function loadData() {
+            try {
+                const res = await fetch(API_URL + "?t=" + new Date().getTime());
+                masterData = await res.json();
+                
+                populateFilters(masterData);
+                renderDashboard(masterData);
+                
+                document.getElementById('lastUpdated').innerText = "Dikemaskini: " + new Date().toLocaleTimeString();
+            } catch (err) {
+                console.error(err);
+            }
         }
-    });
 
-    // 4. JADUAL MURID
-    if ($.fn.DataTable.isDataTable('#tableMurid')) {
-        $('#tableMurid').DataTable().clear().destroy();
-    }
+        // 2. Isi Dropdown
+        function populateFilters(data) {
+            const schoolDropdown = document.getElementById('schoolFilter');
+            const schools = [...new Set(data.map(d => d["NAMA SEKOLAH"]))].sort();
+            
+            schools.forEach(school => {
+                const opt = document.createElement('option');
+                opt.value = school;
+                opt.innerText = school;
+                schoolDropdown.appendChild(opt);
+            });
+        }
 
-    const tableBody = document.querySelector('#tableMurid tbody');
-    tableBody.innerHTML = ""; 
-    data.forEach(d => {
-        // Logik warna status
-        let statusAP = String(d[colStatusF2] || "");
-        let colorClass = statusAP.includes("ARUS  PERDANA") ? "text-green-600 font-bold" : "text-blue-700 font-semibold";
+        // 3. Logik Filter
+        function applyFilters() {
+            const selectedSchool = document.getElementById('schoolFilter').value;
+            const selectedGrade = document.getElementById('gradeFilter').value;
 
-        tableBody.innerHTML += `
-            <tr class="hover:bg-gray-50 border-b">
-                <td class="p-2 border uppercase">${d[colNama] || '-'}</td>
-                <td class="p-2 border text-xs">${d[colSekolah] || '-'}</td>
-                <td class="p-2 border text-center">${d[colDarjah] || '-'}</td>
-                <td class="p-2 border text-xs text-gray-500">${d[colStatusF1] || '-'}</td>
-                <td class="p-2 border text-xs ${colorClass}">${statusAP || '-'}</td>
-                <td class="p-2 border text-center text-xs">${d[colOKU] || 'TIDAK'}</td>
-            </tr>
-        `;
-    });
-    $('#tableMurid').DataTable({ 
-        responsive: true,
-        pageLength: 10,
-        order: [[2, 'asc']], // Susun ikut Darjah secara default
-        language: { search: "Cari Murid/Sekolah/Status:" }
-    });
-}
+            let filtered = masterData;
+
+            if (selectedSchool !== "ALL") {
+                filtered = filtered.filter(d => d["NAMA SEKOLAH"] === selectedSchool);
+            }
+            if (selectedGrade !== "ALL") {
+                filtered = filtered.filter(d => String(d["DARJAH"]) === selectedGrade);
+            }
+
+            renderDashboard(filtered);
+        }
+
+        document.getElementById('schoolFilter').addEventListener('change', applyFilters);
+        document.getElementById('gradeFilter').addEventListener('change', applyFilters);
+
+        function resetFilters() {
+            document.getElementById('schoolFilter').value = "ALL";
+            document.getElementById('gradeFilter').value = "ALL";
+            renderDashboard(masterData);
+        }
+
+        // 4. Paparan Utama
+        function renderDashboard(data) {
+            // Mapping Kolum Dinamik
+            const getCol = (search) => Object.keys(data[0] || {}).find(k => k.includes(search));
+            const colStatusF2 = getCol("FASA PELEPASAN 2");
+            const colOKU = getCol("STATUS OKU (FASA PELEPASAN 2)") || getCol("OKU");
+            const colPakk = getCol("KATEGORI PAKK") || getCol("PAKK");
+
+            // Statistik
+            document.getElementById('statTotal').innerText = data.length;
+            document.getElementById('statLulus').innerText = data.filter(d => String(d[colStatusF2]).includes("ARUS  PERDANA")).length;
+            document.getElementById('statSekolah').innerText = new Set(data.map(d => d["NAMA SEKOLAH"])).size;
+            document.getElementById('statOKU').innerText = data.filter(d => String(d[colOKU]).includes("YA")).length;
+
+            // Carta Darjah
+            const gMap = {};
+            data.forEach(d => gMap[d.DARJAH] = (gMap[d.DARJAH] || 0) + 1);
+            if(gradeChart) gradeChart.destroy();
+            gradeChart = new Chart(document.getElementById('gradeChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(gMap).sort(),
+                    datasets: [{ label: 'Murid', data: Object.values(gMap), backgroundColor: '#6366f1', borderRadius: 8 }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+
+            // Carta PAKK
+            const pMap = {};
+            data.forEach(d => { let v = d[colPakk] || "TIADA"; pMap[v] = (pMap[v] || 0) + 1; });
+            if(pakkChart) pakkChart.destroy();
+            pakkChart = new Chart(document.getElementById('pakkChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(pMap),
+                    datasets: [{ data: Object.values(pMap), backgroundColor: ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6'] }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
+            });
+
+            // Jadual
+            if ($.fn.DataTable.isDataTable('#tableMurid')) $('#tableMurid').DataTable().destroy();
+            const tableBody = document.querySelector('#tableMurid tbody');
+            tableBody.innerHTML = data.map(d => `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="p-3 font-semibold text-xs uppercase">${d["NAMA MURID"]}</td>
+                    <td class="p-3 text-[11px] text-slate-500">${d["NAMA SEKOLAH"]}</td>
+                    <td class="p-3 text-center font-bold text-indigo-600">${d["DARJAH"]}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-1 rounded-md text-[10px] font-bold ${String(d[colStatusF2]).includes('ARUS  PERDANA') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'} uppercase">
+                            ${d[colStatusF2] || '-'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-center text-xs">${String(d[colOKU]).includes("YA") ? '✅' : '❌'}</td>
+                </tr>
+            `).join('');
+            
+            $('#tableMurid').DataTable({ 
+                pageLength: 10, 
+                language: { search: "_INPUT_", searchPlaceholder: "Carian Pantas..." } 
+            });
+        }
+
+        loadData();
+        setInterval(loadData, 300000);
     </script>
 </body>
 </html>
